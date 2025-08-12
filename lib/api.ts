@@ -9,6 +9,44 @@ const api = axios.create({
   },
 })
 
+// Interceptor para añadir token automáticamente
+api.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      // Solo en el cliente
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('prode_token='))
+        ?.split('=')[1]
+      
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor para manejar errores de autenticación
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expirado o inválido
+      if (typeof window !== 'undefined') {
+        // Eliminar cookies y redirigir al login
+        document.cookie = 'prode_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        document.cookie = 'prode_token_expiry=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        window.location.href = '/auth/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 // Interfaces para tipado
 export interface User {
   id: string
@@ -75,6 +113,14 @@ export interface UserStats {
 
 // API Functions
 export const apiService = {
+  // Auth methods
+  setAuthToken: (token: string) => {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  },
+  clearAuthToken: () => {
+    delete api.defaults.headers.common['Authorization']
+  },
+
   // Health check
   health: () => api.get('/health'),
 

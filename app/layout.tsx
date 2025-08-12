@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 import { MobileLayout } from './components/mobile-layout'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -40,7 +41,9 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className}>
-        <MobileLayout>{children}</MobileLayout>
+        <AuthProvider>
+          <MobileLayout>{children}</MobileLayout>
+        </AuthProvider>
       </body>
     </html>
   )

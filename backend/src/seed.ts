@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -68,12 +69,18 @@ async function main() {
     { email: 'diego.lopez@empresa.com', nombre: 'Diego', apellido: 'López', area: 'Marketing' }
   ]
 
+  // Hashear contraseña por defecto para todos los usuarios
+  const defaultPassword = await bcrypt.hash('123456', 12)
+
   const createdUsers = await Promise.all(
     users.map(user => 
       prisma.user.upsert({
         where: { email: user.email },
         update: {},
-        create: user
+        create: {
+          ...user,
+          password: defaultPassword
+        }
       })
     )
   )

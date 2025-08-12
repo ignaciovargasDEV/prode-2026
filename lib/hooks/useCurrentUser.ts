@@ -1,13 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import { apiService, User, UserStats, RankingUser } from '@/lib/api'
 
 export function useCurrentUser() {
-  // Por ahora usaremos un usuario hardcodeado hasta implementar auth
-  // En una implementación real, esto vendría del sistema de autenticación
-  const CURRENT_USER_ID = '1' // Usamos un ID simple que coincida con el seed
-
+  const { user: authUser, isAuthenticated } = useAuth()
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [ranking, setRanking] = useState<RankingUser | null>(null)
@@ -16,64 +14,48 @@ export function useCurrentUser() {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!isAuthenticated || !authUser) {
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         setError(null)
 
-        // Primero intentamos obtener todos los usuarios para conseguir un ID válido
-        const usersResponse = await apiService.getUsers()
-        if (usersResponse.data.length === 0) {
-          throw new Error('No users found in database')
+        // Usar el usuario del contexto de autenticación y convertirlo al tipo de API
+        const apiUser: User = {
+          ...authUser,
+          createdAt: new Date().toISOString() // Fallback temporal
         }
-        
-        // Usar el primer usuario disponible
-        const firstUser = usersResponse.data[0]
-        const actualUserId = firstUser.id
+        setUser(apiUser)
 
-        // Fetch user data, stats, and ranking in parallel
-        const [userResponse, statsResponse, rankingResponse] = await Promise.all([
-          apiService.getUserById(actualUserId),
-          apiService.getUserStats(actualUserId),
-          apiService.getUserRanking(actualUserId)
+        // Fetch stats and ranking for the authenticated user
+        const [statsResponse, rankingResponse] = await Promise.all([
+          apiService.getUserStats(authUser.id),
+          apiService.getUserRanking(authUser.id)
         ])
 
-        setUser(userResponse.data)
         setStats(statsResponse.data)
         setRanking(rankingResponse.data)
       } catch (err: any) {
         console.error('Error fetching user data:', err)
         setError(err.message || 'Error loading user data')
-        
-        // Si no tenemos usuarios, crear uno por defecto
-        if (err.message === 'No users found in database') {
-          try {
-            const newUser = await apiService.createUser({
-              email: 'usuario@empresa.com',
-              nombre: 'Usuario',
-              apellido: 'Demo', 
-              area: 'Tecnología'
-            })
-            setUser(newUser.data)
-            setError(null)
-          } catch (createErr: any) {
-            console.error('Error creating default user:', createErr)
-          }
-        }
       } finally {
         setLoading(false)
       }
     }
 
     fetchUserData()
-  }, [])
+  }, [authUser, isAuthenticated])
 
   const refreshUserData = async () => {
-    if (!user) return
+    if (!authUser) return
     
     try {
       const [statsResponse, rankingResponse] = await Promise.all([
-        apiService.getUserStats(user.id),
-        apiService.getUserRanking(user.id)
+        apiService.getUserStats(authUser.id),
+        apiService.getUserRanking(authUser.id)
       ])
 
       setStats(statsResponse.data)
@@ -90,6 +72,6 @@ export function useCurrentUser() {
     loading,
     error,
     refreshUserData,
-    userId: user?.id || null
+    userId: authUser?.id || null
   }
 }

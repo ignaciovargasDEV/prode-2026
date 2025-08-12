@@ -13,15 +13,19 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  password  String
   nombre    String
   apellido  String
   area      String
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relaciones
   predictions      Prediction[]
   userAchievements UserAchievement[]
+  sessions         UserSession[]
   
   @@map("users")
 }
@@ -104,6 +108,20 @@ model UserAchievement {
   // Un usuario no puede desbloquear el mismo logro dos veces
   @@unique([userId, achievementId])
   @@map("user_achievements")
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_sessions")
 }
 
 enum MatchPhase {

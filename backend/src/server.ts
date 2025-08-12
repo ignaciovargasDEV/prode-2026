@@ -9,6 +9,7 @@ import userRoutes from './routes/users'
 import matchRoutes from './routes/matches'
 import predictionRoutes from './routes/predictions'
 import rankingRoutes from './routes/ranking'
+import authRoutes from './routes/auth'
 
 // Cargar variables de entorno
 dotenv.config()
@@ -40,6 +41,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/matches', matchRoutes)
 app.use('/api/predictions', predictionRoutes)
 app.use('/api/ranking', rankingRoutes)
+app.use('/api/auth', authRoutes)
 
 // Manejo de errores 404
 app.use('*', (req, res) => {
