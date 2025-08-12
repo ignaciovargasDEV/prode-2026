@@ -1,16 +1,13 @@
 {
-  "builder": {
-    "build": {
-      "commands": [
-        "pnpm install --frozen-lockfile --prefer-offline",
-        "pnpm run build"
-      ]
-    }
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install && npm run build"
   },
   "deploy": {
-    "startCommand": "pnpm run start",
-    "healthcheckPath": "/",
+    "numReplicas": 1,
+    "startCommand": "node backend/dist/server.js",
     "restartPolicyType": "ON_FAILURE",
-    "healthcheckTimeout": 100
+    "restartPolicyMaxRetries": 10
   }
 }

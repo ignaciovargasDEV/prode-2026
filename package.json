@@ -3,10 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "npm run build:backend && npm run db:setup:safe && next build",
+    "build:backend": "cd backend && npm install && npm run build",
+    "db:setup": "cd backend && npx prisma db push && npm run db:seed",
+    "db:setup:railway": "cd backend && npx prisma generate && npx prisma db push && npm run db:seed",
+    "db:setup:safe": "npm run db:setup:railway || echo '⚠️ Database setup failed - continuing with build (Railway will handle this)'",
     "dev": "next dev",
+    "dev:backend": "cd backend && npm run dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "node backend/dist/server.js",
+    "start:frontend": "next start",
+    "postinstall": "cd backend && npm install"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import * as jwt from 'jsonwebtoken'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -222,7 +222,7 @@ class AuthService {
         sessionId: session.id 
       },
       this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
+      { expiresIn: this.JWT_EXPIRES_IN } as jwt.SignOptions
     )
 
     // Actualizar la sesión con el token

@@ -35,6 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const TOKEN_KEY = 'prode_token'
 const TOKEN_EXPIRY_KEY = 'prode_token_expiry'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (data: RegisterData) => {
     try {
       setIsLoading(true)
-      const response = await fetch('http://localhost:3001/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = getToken()
       if (token) {
         // Intentar hacer logout en el servidor
-        await fetch('http://localhost:3001/api/auth/logout', {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -186,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No hay token para refrescar')
       }
 
-      const response = await fetch('http://localhost:3001/api/auth/refresh', {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Validar token con el servidor
-        const response = await fetch('http://localhost:3001/api/auth/validate', {
+        const response = await fetch(`${API_BASE_URL}/auth/validate`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

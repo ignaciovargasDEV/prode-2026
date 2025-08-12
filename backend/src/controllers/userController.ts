@@ -54,21 +54,34 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { email, nombre, apellido, area } = req.body
+    const { email, nombre, apellido, area, password } = req.body
     
-    // Validar datos requeridos
-    if (!email || !nombre || !apellido || !area) {
+    if (!email || !nombre || !apellido || !area || !password) {
       return res.status(400).json({ 
-        error: 'Missing required fields: email, nombre, apellido, area' 
+        error: 'Missing required fields: email, nombre, apellido, area, password' 
       })
     }
+    
+    // Hash de la contraseña
+    const bcrypt = require('bcryptjs')
+    const hashedPassword = await bcrypt.hash(password, 12)
     
     const user = await prisma.user.create({
       data: {
         email,
         nombre,
         apellido,
-        area
+        area,
+        password: hashedPassword
+      },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        apellido: true,
+        area: true,
+        createdAt: true,
+        updatedAt: true
       }
     })
     
