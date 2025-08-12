@@ -1,13 +1,29 @@
 #!/usr/bin/env node
 
-const axios = require('axios');
+// Solo usar axios si está disponible, sino usar fetch nativo
+let axios;
+try {
+  axios = require('axios');
+} catch (error) {
+  console.log('⚠️  axios no está disponible, usando fetch nativo');
+}
 
 const API_BASE = 'http://localhost:3001/api';
 
 async function checkEndpoint(endpoint, description) {
   try {
-    const response = await axios.get(`${API_BASE}${endpoint}`);
-    console.log(`✅ ${description}: OK (${response.status})`);
+    let response;
+    
+    if (axios) {
+      response = await axios.get(`${API_BASE}${endpoint}`);
+      console.log(`✅ ${description}: OK (${response.status})`);
+    } else {
+      // Usar fetch nativo si axios no está disponible
+      const fetchResponse = await fetch(`${API_BASE}${endpoint}`);
+      response = { status: fetchResponse.status };
+      console.log(`✅ ${description}: OK (${response.status})`);
+    }
+    
     return true;
   } catch (error) {
     console.log(`❌ ${description}: FAILED`);
