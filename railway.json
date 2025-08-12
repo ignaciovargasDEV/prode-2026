@@ -1,0 +1,16 @@
+{
+  "builder": {
+    "build": {
+      "commands": [
+        "pnpm install --frozen-lockfile --prefer-offline",
+        "pnpm run build"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "pnpm run start",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE",
+    "healthcheckTimeout": 100
+  }
+}
