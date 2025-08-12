@@ -1,0 +1,7 @@
+<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#0066cc" rx="20"/>
+  <circle cx="96" cy="96" r="60" fill="white"/>
+  <circle cx="96" cy="96" r="45" fill="#0066cc"/>
+  <path d="M96 60 L110 85 L135 85 L116 102 L125 127 L96 110 L67 127 L76 102 L57 85 L82 85 Z" fill="white"/>
+  <text x="96" y="150" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">PRODE</text>
+</svg>

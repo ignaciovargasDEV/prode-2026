@@ -1,26 +1,142 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Trophy, Target, TrendingUp, Calendar, Clock, Flag, ArrowRight, Star, Award } from 'lucide-react'
-import { mockUser, mockUpcomingMatches, mockRecentResults, mockStats } from '@/lib/mock-data'
+import { apiService, Match, RankingUser, UserStats, User } from '@/lib/api'
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
 
 export default function Dashboard() {
+  const { user, stats, ranking, loading, error } = useCurrentUser()
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([])
+  const [recentResults, setRecentResults] = useState<any[]>([])
+  const [loadingData, setLoadingData] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [upcomingResponse, recentResponse, userHistoryResponse] = await Promise.all([
+          apiService.getUpcomingMatches(),
+          apiService.getRecentResults(),
+          user ? apiService.getUserHistory(user.id) : Promise.resolve({ data: [] })
+        ])
+
+        setUpcomingMatches(upcomingResponse.data)
+        
+        // Convert recent matches to the format expected by the UI
+        const recentWithPredictions = recentResponse.data.map(match => ({
+          id: match.id,
+          equipoLocal: match.homeTeam.name,
+          equipoVisitante: match.awayTeam.name,
+          golesLocal: match.homeGoals,
+          golesVisitante: match.awayGoals,
+          puntos: 0, // We'll update this with actual user predictions
+          pronosticoLocal: 0,
+          pronosticoVisitante: 0
+        }))
+
+        // If we have user history, match it with recent results
+        if (userHistoryResponse.data.length > 0) {
+          const historyMap = new Map(
+            userHistoryResponse.data.map(h => [h.id, h])
+          )
+          
+          recentWithPredictions.forEach(result => {
+            const history = historyMap.get(result.id)
+            if (history) {
+              result.puntos = history.puntos
+              result.pronosticoLocal = history.pronosticoLocal
+              result.pronosticoVisitante = history.pronosticoVisitante
+            }
+          })
+        }
+
+        setRecentResults(recentWithPredictions)
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err)
+      } finally {
+        setLoadingData(false)
+      }
+    }
+
+    if (user) {
+      fetchData()
+    }
+  }, [user])
+
+  if (loading || loadingData) {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-4 md:p-6 text-white">
+          <div className="animate-pulse">
+            <div className="h-6 bg-blue-500 rounded mb-2 w-1/3"></div>
+            <div className="h-4 bg-blue-400 rounded w-1/2"></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-red-600 mb-2">Error de conexión</h3>
+              <p className="text-gray-600 mb-4">No se pudo conectar con el servidor. Asegúrate de que el backend esté ejecutándose en el puerto 3001.</p>
+              <Button onClick={() => window.location.reload()}>
+                Reintentar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!user || !stats || !ranking) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">No se encontraron datos</h3>
+              <p className="text-gray-600">No se pudieron cargar los datos del usuario.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-4 md:p-6 text-white">
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div className="mb-4 md:mb-0">
-            <h2 className="text-xl md:text-2xl font-bold mb-2">¡Bienvenido, {mockUser.nombre}!</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-2">¡Bienvenido, {user.nombre}!</h2>
             <p className="text-blue-100 text-sm md:text-base">
-              Estás en el puesto #{mockUser.posicionRanking} con {mockUser.puntosTotal} puntos
+              Estás en el puesto #{ranking.posicion} con {ranking.puntos} puntos
             </p>
           </div>
           <div className="text-center md:text-right">
-            <div className="text-2xl md:text-3xl font-bold">{mockUser.puntosTotal}</div>
+            <div className="text-2xl md:text-3xl font-bold">{ranking.puntos}</div>
             <div className="text-blue-200 text-sm">puntos totales</div>
           </div>
         </div>
@@ -34,9 +150,9 @@ export default function Dashboard() {
             <Trophy className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">#{mockUser.posicionRanking}</div>
+            <div className="text-xl md:text-2xl font-bold">#{ranking.posicion}</div>
             <p className="text-xs text-muted-foreground">
-              +2 vs semana pasada
+              {ranking.cambio} vs anterior
             </p>
           </CardContent>
         </Card>
@@ -47,9 +163,9 @@ export default function Dashboard() {
             <Target className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{mockStats.totalPredictions}</div>
+            <div className="text-xl md:text-2xl font-bold">{stats.totalPredictions}</div>
             <p className="text-xs text-muted-foreground">
-              {mockStats.accuracy}% aciertos
+              {stats.accuracy}% aciertos
             </p>
           </CardContent>
         </Card>
@@ -60,7 +176,7 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{mockStats.currentStreak}</div>
+            <div className="text-xl md:text-2xl font-bold">{stats.currentStreak}</div>
             <p className="text-xs text-muted-foreground">
               consecutivos
             </p>
@@ -73,7 +189,7 @@ export default function Dashboard() {
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{mockUpcomingMatches.length}</div>
+            <div className="text-xl md:text-2xl font-bold">{upcomingMatches.length}</div>
             <p className="text-xs text-muted-foreground">
               por pronosticar
             </p>
@@ -98,17 +214,17 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3 md:space-y-4">
-            {mockUpcomingMatches.slice(0, 3).map((match) => (
+            {upcomingMatches.slice(0, 3).map((match) => (
               <div key={match.id} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
                   <div className="flex items-center space-x-1 md:space-x-2 min-w-0">
                     <Flag className="w-3 md:w-4 h-3 md:h-4 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium text-xs md:text-sm truncate">{match.equipoLocal}</span>
+                    <span className="font-medium text-xs md:text-sm truncate">{match.homeTeam.name}</span>
                   </div>
                   <span className="text-gray-500 text-xs md:text-sm">vs</span>
                   <div className="flex items-center space-x-1 md:space-x-2 min-w-0">
                     <Flag className="w-3 md:w-4 h-3 md:h-4 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium text-xs md:text-sm truncate">{match.equipoVisitante}</span>
+                    <span className="font-medium text-xs md:text-sm truncate">{match.awayTeam.name}</span>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-2">
@@ -129,7 +245,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 md:space-y-4">
-            {mockRecentResults.slice(0, 3).map((result) => (
+            {recentResults.slice(0, 3).map((result) => (
               <div key={result.id} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
                   <div className="flex items-center space-x-1 md:space-x-2">
@@ -168,22 +284,22 @@ export default function Dashboard() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span>Progreso del Mundial</span>
-                <span>32 de 104 partidos</span>
+                <span>{stats.totalPredictions} de {stats.totalMatches} partidos</span>
               </div>
-              <Progress value={31} className="h-2" />
+              <Progress value={(stats.totalPredictions / stats.totalMatches) * 100} className="h-2" />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-6">
               <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
-                <div className="text-xl md:text-2xl font-bold text-blue-600">{mockStats.accuracy}%</div>
+                <div className="text-xl md:text-2xl font-bold text-blue-600">{stats.accuracy}%</div>
                 <div className="text-xs md:text-sm text-gray-600">Precisión</div>
               </div>
               <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
-                <div className="text-xl md:text-2xl font-bold text-green-600">{mockStats.exactMatches}</div>
+                <div className="text-xl md:text-2xl font-bold text-green-600">{stats.exactMatches}</div>
                 <div className="text-xs md:text-sm text-gray-600">Resultados exactos</div>
               </div>
               <div className="text-center p-3 md:p-4 bg-yellow-50 rounded-lg">
-                <div className="text-xl md:text-2xl font-bold text-yellow-600">{mockStats.partialMatches}</div>
+                <div className="text-xl md:text-2xl font-bold text-yellow-600">{stats.partialMatches}</div>
                 <div className="text-xs md:text-sm text-gray-600">Resultados parciales</div>
               </div>
             </div>
